@@ -1,16 +1,19 @@
 import warnings
 from typing import Dict, Any
 
-import cv2
-import numpy as np
-
 from backend import config
 
 
 class VisionAnalyzer:
     def __init__(self):
         self.available = False
+        self._cv2 = None
+        self._np = None
         try:
+            import cv2 as cv2_mod
+            import numpy as np_mod
+            self._cv2 = cv2_mod
+            self._np = np_mod
             from mediapipe import Image, ImageFormat
             from mediapipe.tasks.python.vision.face_landmarker import FaceLandmarker
             from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker
@@ -32,7 +35,7 @@ class VisionAnalyzer:
         except Exception as e:
             warnings.warn(f"Vision analyzer init failed: {e}. Vision disabled.")
 
-    def analyze_frame(self, frame: np.ndarray) -> Dict[str, Any]:
+    def analyze_frame(self, frame) -> Dict[str, Any]:
         result = {
             "face_detected": False,
             "head_pose": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0},
@@ -45,7 +48,7 @@ class VisionAnalyzer:
             return result
 
         from mediapipe import Image, ImageFormat
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rgb = self._cv2.cvtColor(frame, self._cv2.COLOR_BGR2RGB)
         mp_image = Image(image_format=ImageFormat.SRGB, data=rgb)
         h, w = frame.shape[:2]
 
@@ -63,11 +66,11 @@ class VisionAnalyzer:
             chin = landmarks[152]
             forehead = landmarks[10]
 
-            yaw = np.degrees(np.arctan2(
+            yaw = self._np.degrees(self._np.arctan2(
                 nose_tip.x - (left_eye.x + right_eye.x) / 2,
                 forehead.x - chin.x
             ))
-            pitch = np.degrees(np.arctan2(
+            pitch = self._np.degrees(self._np.arctan2(
                 nose_tip.y - (forehead.y + chin.y) / 2,
                 abs(forehead.x - chin.x)
             ))
@@ -92,26 +95,26 @@ class VisionAnalyzer:
             for lm in landmarks
         ]
 
-    def draw_overlay(self, frame: np.ndarray, analysis: Dict[str, Any]) -> np.ndarray:
+    def draw_overlay(self, frame, analysis: Dict[str, Any]):
         if analysis["face_detected"] and analysis["landmarks"]:
             for lm in analysis["landmarks"]:
-                cv2.circle(frame, (int(lm["x"]), int(lm["y"])), 1, (0, 255, 0), -1)
+                self._cv2.circle(frame, (int(lm["x"]), int(lm["y"])), 1, (0, 255, 0), -1)
 
             color = (0, 255, 0) if analysis["eye_contact"] else (0, 0, 255)
-            cv2.putText(
+            self._cv2.putText(
                 frame,
                 f"Eye Contact: {analysis['eye_contact']}",
                 (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX,
+                self._cv2.FONT_HERSHEY_SIMPLEX,
                 0.7,
                 color,
                 2,
             )
-            cv2.putText(
+            self._cv2.putText(
                 frame,
                 f"Head: yaw={analysis['head_pose']['yaw']:.0f} pitch={analysis['head_pose']['pitch']:.0f}",
                 (10, 60),
-                cv2.FONT_HERSHEY_SIMPLEX,
+                self._cv2.FONT_HERSHEY_SIMPLEX,
                 0.6,
                 (255, 255, 255),
                 2,
