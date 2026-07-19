@@ -1,0 +1,15 @@
+[project]
+name = "ai-mock-interviewer"
+version = "1.0.0"
+description = "AI-powered mock interview practice application"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
